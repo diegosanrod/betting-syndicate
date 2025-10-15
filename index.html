@@ -290,18 +290,28 @@
         
         async function loadUserSettings() {
             if (!state.user) return;
+            console.log("1. Entrando en loadUserSettings para el usuario:", state.user.uid); // LOG 1
             const settingsRef = doc(db, "users", state.user.uid);
             try {
+                console.log("2. Intentando obtener el documento de configuración..."); // LOG 2
                 const settingsSnap = await getDoc(settingsRef);
+                console.log("3. Petición a getDoc completada. Documento existe:", settingsSnap.exists()); // LOG 3
+
+                if (settingsSnap.exists()) {
+                    console.log("4. Documento encontrado. Datos:", settingsSnap.data()); // LOG 4
+                }
+
                 if (settingsSnap.exists() && settingsSnap.data().initialBankroll !== undefined) {
                     state.settings = settingsSnap.data();
                     listenForBets();
+                    console.log("5a. Configuración encontrada. Mostrando la app principal."); // LOG 5a
                     showView('mainApp');
                 } else {
+                    console.log("5b. No hay configuración. Mostrando el modal de objetivo."); // LOG 5b
                     showView('goalModal');
                 }
             } catch (error) {
-                console.error("Error loading user settings:", error);
+                console.error("¡ERROR CAPTURADO! No se pudo cargar la configuración:", error); // LOG DE ERROR
                 alert("Error al cargar tu configuración. Revisa las reglas de Firestore.");
                 signOut(auth);
             }
@@ -698,5 +708,3 @@
     </script>
 </body>
 </html>
-
-
