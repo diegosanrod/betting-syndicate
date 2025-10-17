@@ -28,23 +28,12 @@
             padding: 8px;
             border-radius: 8px;
         }
-        #loading-spinner {
-            border: 4px solid rgba(255, 255, 255, 0.2);
-            border-left-color: #4f46e5;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200 antialiased">
 
     <!-- Setup Modal -->
-    <div id="setup-modal" class="fixed inset-0 bg-gray-900 bg-opacity-95 z-50 flex items-center justify-center hidden p-4">
+    <div id="setup-modal" class="fixed inset-0 bg-gray-900 bg-opacity-95 z-50 flex items-center justify-center p-4">
         <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md">
             <h2 class="text-2xl font-bold text-center text-white mb-2">Bienvenido a Betting Syndicate</h2>
             <p class="text-center text-gray-400 mb-6">Configura tus objetivos para empezar.</p>
@@ -84,7 +73,6 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-1 flex flex-col gap-8">
-                <!-- Dashboard Card -->
                 <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
                     <h2 class="text-xl font-bold mb-4 text-white">Dashboard</h2>
                     <div class="space-y-4">
@@ -104,20 +92,9 @@
                         </div>
                     </div>
                 </div>
-                <!-- Nueva Apuesta Card -->
                 <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
                     <h2 class="text-xl font-bold mb-4 text-white">Registrar Apuesta</h2>
                     <form id="bet-form" class="space-y-4">
-                         <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label for="sport" class="block text-sm font-medium text-gray-300">Deporte</label>
-                                <input type="text" id="sport" placeholder="Fútbol" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md" required>
-                            </div>
-                            <div>
-                                <label for="competition" class="block text-sm font-medium text-gray-300">Competición</label>
-                                <input type="text" id="competition" placeholder="La Liga" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md" required>
-                            </div>
-                        </div>
                         <div><label for="bet-date" class="block text-sm font-medium text-gray-300">Fecha</label><input type="date" id="bet-date" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md" required></div>
                         <div class="space-y-3" id="selections-container"><label class="block text-sm font-medium text-gray-300">Selecciones</label></div>
                         <button type="button" id="add-selection-btn" class="w-full text-sm bg-gray-700 hover:bg-gray-600 text-indigo-300 font-semibold py-2 px-4 rounded-lg">Añadir Selección</button>
@@ -194,8 +171,6 @@
                 statsNetProfitEl: document.getElementById('stats-net-profit'),
                 noBetsMessage: document.getElementById('no-bets-message'),
                 betDateInput: document.getElementById('bet-date'),
-                sportInput: document.getElementById('sport'),
-                competitionInput: document.getElementById('competition'),
                 tabHistorial: document.getElementById('tab-historial'),
                 tabAnalisis: document.getElementById('tab-analisis'),
                 historialPanel: document.getElementById('historial-panel'),
@@ -211,17 +186,21 @@
             const formatCurrency = (value) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(value);
             
             const saveState = () => {
-                localStorage.setItem('bettingSyndicateState_local', JSON.stringify(state));
+                localStorage.setItem('bettingSyndicateState_local_v2', JSON.stringify(state));
             };
 
             const loadState = () => {
-                const savedState = localStorage.getItem('bettingSyndicateState_local');
+                const savedState = localStorage.getItem('bettingSyndicateState_local_v2');
                 if (savedState) {
                     state = JSON.parse(savedState);
                     dom.mainApp.classList.remove('hidden');
+                    dom.setupModal.classList.remove('flex');
+                    dom.setupModal.classList.add('hidden');
                     recalculateBankroll();
                 } else {
+                    dom.setupModal.classList.remove('hidden');
                     dom.setupModal.classList.add('flex');
+                    dom.mainApp.classList.add('hidden');
                 }
             };
 
@@ -280,7 +259,10 @@
                             const resultTexts = { won: '✓', lost: '✗', pending: '?' };
                             resultIndicator = `<span class="font-bold text-sm ${resultClasses[s.result] || 'text-gray-400'}">${resultTexts[s.result] || '?'}</span>`;
                         }
-                        return `<div class="p-1">- ${s.description} <span class='text-gray-400 ml-2'>@${s.odds.toFixed(2)}</span> ${resultIndicator}</div>`;
+                        return `<div class="p-1">
+                                    <div class="flex justify-between items-center">- ${s.description} <span class='text-gray-400 ml-2'>@${s.odds.toFixed(2)}</span> ${resultIndicator}</div>
+                                    <div class="text-xs text-gray-500 pl-2">${s.sport} - ${s.competition}</div>
+                                </div>`;
                     }).join('');
 
                     let resultDisplay;
@@ -318,6 +300,8 @@
                 const selections = Array.from(dom.selectionsContainer.querySelectorAll('.selection-row')).map(row => ({
                     description: row.querySelector('.selection-desc').value,
                     odds: parseFloat(row.querySelector('.selection-odds').value),
+                    sport: 'N/A', // Simplified for this version
+                    competition: 'N/A', // Simplified for this version
                     result: 'pending'
                 })).filter(s => s.description && !isNaN(s.odds));
 
@@ -349,7 +333,7 @@
             const addSelectionHTML = () => {
                 const selectionCount = dom.selectionsContainer.querySelectorAll('.selection-row').length;
                 const newSelection = document.createElement('div');
-                newSelection.className = 'selection-row space-y-2';
+                newSelection.className = 'selection-row';
                 newSelection.innerHTML = `
                     <div class="grid grid-cols-10 gap-2 items-center">
                         <input type="text" placeholder="Descripción de la Selección ${selectionCount + 1}" class="selection-desc col-span-7 bg-gray-900 border-gray-600 rounded-md text-white text-sm p-2" required>
@@ -417,7 +401,7 @@
             
             dom.clearDataBtn.addEventListener('click', () => { 
                 if (confirm("¿Seguro que quieres borrar TODAS tus apuestas y reiniciar tu objetivo?")) {
-                    localStorage.removeItem('bettingSyndicateState_local');
+                    localStorage.removeItem('bettingSyndicateState_local_v2');
                     location.reload();
                 }
             });
