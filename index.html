@@ -346,33 +346,46 @@
 
         function recalculateBankroll() {
             let runningBankroll = state.initialBankroll;
-            const betsForCalculation = [...state.bets].sort((a, b) => new Date(a.date) - new Date(b.date));
-            
-            betsForCalculation.forEach(bet => {
+            // Ordenar las apuestas cronológicamente para calcular el saldo de forma correcta
+            const betsSortedChronologically = [...state.bets].sort((a, b) => {
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                if (isNaN(dateA.getTime())) return 1;
+                if (isNaN(dateB.getTime())) return -1;
+                return dateA - dateB;
+            });
+
+            // Calcular el beneficio y el saldo final para cada apuesta en orden
+            betsSortedChronologically.forEach(bet => {
                 let profit = 0;
                 switch(bet.result) {
                     case 'won': profit = bet.stake * (bet.totalOdds - 1); break;
                     case 'lost': profit = -bet.stake; break;
                     case 'void': profit = 0; break;
-                    case 'closed': profit = bet.profit; break;
+                    case 'closed': profit = bet.profit || 0; break;
                     case 'pending': profit = 0; break;
                 }
                 bet.calculatedProfit = profit;
                 runningBankroll += profit;
                 bet.finalBankroll = runningBankroll;
             });
-
+            
             state.bankroll = runningBankroll;
+
+            // Guardar las apuestas en el estado, ordenadas para mostrar (la más nueva primero)
+            state.bets = betsSortedChronologically.reverse();
+
             renderAll();
         };
 
         function renderAll() {
             renderDashboardAndHistory();
+            // La función renderAnalysis() se llama desde el propio tab
         }
 
         function renderDashboardAndHistory() {
             dom.currentBankrollEl.textContent = formatCurrency(state.bankroll);
-            dom.goalBankrollEl.textContent = formatCamera(state.goalBankroll);
+            dom.goalBankrollEl.textContent = formatCurrency(state.goalBankroll);
             dom.initialBankrollEl.textContent = formatCurrency(state.initialBankroll);
             const progress = state.goalBankroll > 0 ? Math.max(0, (state.bankroll / state.goalBankroll) * 100) : 0;
             dom.progressBar.style.width = `${progress}%`;
@@ -389,21 +402,9 @@
             dom.historyBody.innerHTML = '';
             dom.noBetsMessage.classList.toggle('hidden', totalBets > 0);
 
-            const calculatedBets = [...state.bets].sort((a, b) => new Date(a.date) - new Date(b.date)).map((bet, index, arr) => {
-                let profit = 0;
-                switch(bet.result) {
-                    case 'won': profit = bet.stake * (bet.totalOdds - 1); break;
-                    case 'lost': profit = -bet.stake; break;
-                    case 'void': profit = 0; break;
-                    case 'closed': profit = bet.profit; break;
-                    case 'pending': profit = 0; break;
-                }
-                const previousBankroll = index === 0 ? state.initialBankroll : arr[index - 1].finalBankroll;
-                return { ...bet, calculatedProfit: profit, finalBankroll: previousBankroll + profit };
-            }).reverse();
-
-
-            calculatedBets.forEach((bet, index) => {
+            // La lógica de cálculo se ha movido a recalculateBankroll().
+            // Ahora simplemente dibujamos los datos pre-calculados.
+            state.bets.forEach((bet, index) => {
                  const row = document.createElement('tr');
                     row.className = 'bg-gray-800 border-b border-gray-700 hover:bg-gray-600/50';
                     const selectionsHtml = (bet.selections || []).map((s, s_index) => {
@@ -447,6 +448,13 @@
         // --- 5. EVENT LISTENERS ---
         const handleFormSubmit = async (e) => {
             e.preventDefault();
+            
+            const dateValue = dom.betDateInput.value;
+            if (!dateValue) {
+                alert("Por favor, selecciona una fecha para la apuesta.");
+                return;
+            }
+
             const stake = parseFloat(document.getElementById('stake').value);
             const availableBankroll = state.bankroll - state.bets.filter(b => b.result === 'pending').reduce((acc, b) => acc + b.stake, 0);
             if (stake > availableBankroll) {
