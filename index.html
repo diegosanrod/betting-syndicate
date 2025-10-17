@@ -152,9 +152,15 @@
         import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, query, updateDoc, deleteDoc, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- 1. CONFIGURACIÓN E INICIALIZACIÓN DE FIREBASE ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined'
-            ? JSON.parse(__firebase_config)
-            : { apiKey: "TU_API_KEY", authDomain: "TU_AUTH_DOMAIN", projectId: "TU_PROJECT_ID" };
+        const firebaseConfig = {
+          apiKey: "AIzaSyABXCPWufB7qCYN-xt2tFJnO1IGgCjcsxQ",
+          authDomain: "betting-syndicate.firebaseapp.com",
+          projectId: "betting-syndicate",
+          storageBucket: "betting-syndicate.firebasestorage.app",
+          messagingSenderId: "430647143377",
+          appId: "1:430647143377:web:16f43f376a031fdd788ef0"
+        };
+
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
@@ -578,4 +584,3 @@
     </script>
 </body>
 </html>
-
