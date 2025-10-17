@@ -289,7 +289,69 @@
             }
 
             function renderAnalysis() {
-                 // ... (implementation is unchanged from previous version)
+                 const settledBets = state.bets.filter(b => b.result !== 'pending' && b.result !== 'void');
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const filterValue = dom.analisisFilter.value;
+                
+                let filteredBets = settledBets.filter(bet => {
+                    const betDate = new Date(bet.date);
+                    if (filterValue === 'all') return true;
+                    if (filterValue === '7d') return (today - betDate) / (1000 * 60 * 60 * 24) <= 7;
+                    if (filterValue === '30d') return (today - betDate) / (1000 * 60 * 60 * 24) <= 30;
+                    if (filterValue === 'this-month') return betDate.getMonth() === now.getMonth() && betDate.getFullYear() === now.getFullYear();
+                    if (filterValue === 'last-month') {
+                        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                        return betDate.getMonth() === lastMonth.getMonth() && betDate.getFullYear() === lastMonth.getFullYear();
+                    }
+                    return false;
+                });
+                
+                dom.noAnalysisData.classList.toggle('hidden', filteredBets.length > 0);
+                dom.analysisContent.classList.toggle('hidden', filteredBets.length === 0);
+                if (filteredBets.length === 0) {
+                     if (monthlyChartInstance) monthlyChartInstance.destroy();
+                    return;
+                }
+
+                const monthlyData = filteredBets.reduce((acc, bet) => {
+                    const month = bet.date.substring(0, 7);
+                    acc[month] = (acc[month] || 0) + bet.calculatedProfit;
+                    return acc;
+                }, {});
+                const sortedMonths = Object.keys(monthlyData).sort();
+                if (monthlyChartInstance) monthlyChartInstance.destroy();
+                monthlyChartInstance = new Chart(document.getElementById('monthly-chart'), { type: 'bar', data: { labels: sortedMonths, datasets: [{ label: 'Beneficio Neto', data: sortedMonths.map(m => monthlyData[m]), backgroundColor: sortedMonths.map(m => monthlyData[m] >= 0 ? 'rgba(74, 222, 128, 0.5)' : 'rgba(248, 113, 113, 0.5)'), borderColor: sortedMonths.map(m => monthlyData[m] >= 0 ? 'rgb(74, 222, 128)' : 'rgb(248, 113, 113)'), borderWidth: 1 }] }, options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } } });
+
+                const renderGroupAnalysis = (groupBy, bodyElement) => {
+                     const groupData = filteredBets.flatMap(bet => 
+                        (bet.selections || []).map(selection => ({
+                            key: selection[groupBy],
+                            result: bet.result,
+                            profit: bet.calculatedProfit / (bet.selections.length || 1)
+                        }))
+                    ).reduce((acc, item) => {
+                        const key = item.key;
+                        if (!key) return acc;
+                        if (!acc[key]) acc[key] = { total: 0, wins: 0, profit: 0 };
+                        acc[key].total++;
+                        if (item.result === 'won' || (item.result === 'closed' && item.profit > 0)) acc[key].wins++;
+                        acc[key].profit += item.profit;
+                        return acc;
+                    }, {});
+
+                    bodyElement.innerHTML = '';
+                    Object.entries(groupData).sort((a,b) => b[1].total - a[1].total).forEach(([key, data]) => {
+                        const row = document.createElement('tr');
+                        const winRate = data.total > 0 ? ((data.wins / data.total) * 100).toFixed(1) + '%' : '0.0%';
+                        const profitClass = data.profit > 0 ? 'text-green-400' : data.profit < 0 ? 'text-red-400' : 'text-gray-400';
+                        row.innerHTML = `<td class="px-4 py-2 font-semibold">${key}</td><td class="px-4 py-2 text-center">${data.total}</td><td class="px-4 py-2 text-center">${winRate}</td><td class="px-4 py-2 text-right font-semibold ${profitClass}">${formatCurrency(data.profit)}</td>`;
+                        bodyElement.appendChild(row);
+                    });
+                };
+            
+                renderGroupAnalysis('sport', dom.sportAnalysisBody);
+                renderGroupAnalysis('competition', dom.competitionAnalysisBody);
             }
 
             const handleFormSubmit = (e) => {
@@ -300,18 +362,16 @@
                 const selections = Array.from(dom.selectionsContainer.querySelectorAll('.selection-row')).map(row => ({
                     description: row.querySelector('.selection-desc').value,
                     odds: parseFloat(row.querySelector('.selection-odds').value),
-                    sport: 'N/A', // Simplified for this version
-                    competition: 'N/A', // Simplified for this version
+                    sport: row.querySelector('.selection-sport').value,
+                    competition: row.querySelector('.selection-competition').value,
                     result: 'pending'
-                })).filter(s => s.description && !isNaN(s.odds));
+                })).filter(s => s.description && !isNaN(s.odds) && s.sport && s.competition);
 
-                if (selections.length === 0) return alert("Añade al menos una selección válida.");
+                if (selections.length === 0) return alert("Añade al menos una selección válida con todos sus campos.");
                 
                 const newBet = {
                     id: crypto.randomUUID(),
                     date: dom.betDateInput.value,
-                    sport: dom.sportInput.value,
-                    competition: dom.competitionInput.value, 
                     selections, 
                     totalOdds: parseFloat(dom.totalOddsEl.value), 
                     stake,
@@ -333,12 +393,16 @@
             const addSelectionHTML = () => {
                 const selectionCount = dom.selectionsContainer.querySelectorAll('.selection-row').length;
                 const newSelection = document.createElement('div');
-                newSelection.className = 'selection-row';
+                newSelection.className = 'selection-row space-y-2';
                 newSelection.innerHTML = `
                     <div class="grid grid-cols-10 gap-2 items-center">
                         <input type="text" placeholder="Descripción de la Selección ${selectionCount + 1}" class="selection-desc col-span-7 bg-gray-900 border-gray-600 rounded-md text-white text-sm p-2" required>
                         <input type="number" step="0.01" min="1.01" placeholder="Cuota" class="selection-odds col-span-2 bg-gray-900 border-gray-600 rounded-md text-white text-sm p-2" required>
                         <button type="button" class="remove-selection-btn col-span-1 text-red-400 hover:text-red-600 text-2xl font-bold">&times;</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" placeholder="Deporte" class="selection-sport bg-gray-900 border-gray-600 rounded-md text-white text-xs p-2" required>
+                        <input type="text" placeholder="Competición" class="selection-competition bg-gray-900 border-gray-600 rounded-md text-white text-xs p-2" required>
                     </div>`;
                 dom.selectionsContainer.appendChild(newSelection);
                 newSelection.querySelector('.selection-odds').addEventListener('input', calculateTotalOdds);
