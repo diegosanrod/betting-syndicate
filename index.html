@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Betting Syndicate</title>
+    <title>Betting Syndicate con Firebase</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -52,11 +52,11 @@
             <form id="setup-form" class="space-y-4">
                 <div>
                     <label for="initial-bankroll-setup" class="block text-sm font-medium text-gray-300">Banca Inicial (€)</label>
-                    <input type="number" step="0.01" min="0.01" id="initial-bankroll-setup" value="50" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm text-white focus:ring-indigo-500 focus:border-indigo-500 p-3" required>
+                    <input type="number" step="0.01" min="0.01" id="initial-bankroll-setup" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm text-white focus:ring-indigo-500 focus:border-indigo-500 p-3" placeholder="Ej: 100" required>
                 </div>
                 <div>
                     <label for="goal-bankroll-setup" class="block text-sm font-medium text-gray-300">Objetivo Final (€)</label>
-                    <input type="number" step="0.01" min="1" id="goal-bankroll-setup" value="200000" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm text-white focus:ring-indigo-500 focus:border-indigo-500 p-3" required>
+                    <input type="number" step="0.01" min="1" id="goal-bankroll-setup" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm text-white focus:ring-indigo-500 focus:border-indigo-500 p-3" placeholder="Ej: 5000" required>
                 </div>
                 <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition-colors mt-4">Comenzar</button>
             </form>
@@ -79,7 +79,10 @@
                  <h1 class="text-3xl md:text-4xl font-bold text-white">Betting Syndicate</h1>
                  <p class="text-gray-400 mt-2">Registra, analiza y optimiza tu rendimiento.</p>
             </div>
-            <button id="logout-btn" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg">Cerrar Sesión</button>
+            <div class="flex items-center gap-4">
+                <button id="clear-data" class="bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded-lg text-sm">Reiniciar Cuenta</button>
+                <button id="logout-btn" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg">Cerrar Sesión</button>
+            </div>
         </header>
 
          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -121,15 +124,16 @@
                             <div><label for="stake" class="block text-sm font-medium text-gray-300">Apostado</label><input type="number" step="0.01" min="0.01" id="stake" placeholder="10.00" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md" required></div>
                             <div><label for="result" class="block text-sm font-medium text-gray-300">Resultado</label><select id="result" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md"><option value="pending">Pendiente</option><option value="won">Ganada</option><option value="lost">Perdida</option><option value="void">Anulada</option><option value="closed">Cerrada</option></select></div>
                         </div>
-                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg">Añadir Registro</button>
+                        <button type="submit" id="submit-bet-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg">Añadir Registro</button>
+                        <button type="button" id="cancel-edit-btn" class="w-full text-center text-gray-400 hover:text-white text-sm py-2 mt-2 hidden">Cancelar Edición</button>
                     </form>
                 </div>
             </div>
             <div class="lg:col-span-2 bg-gray-800 rounded-2xl shadow-lg flex flex-col">
                 <div class="p-4 border-b border-gray-700"><div class="flex bg-gray-900 rounded-lg p-1"><button id="tab-historial" class="tab-button flex-1 py-2 px-4 rounded-md text-sm font-semibold active">Historial</button><button id="tab-analisis" class="tab-button flex-1 py-2 px-4 rounded-md text-sm font-semibold text-gray-400">Análisis</button></div></div>
                 <div id="historial-panel" class="tab-panel flex-grow p-6 overflow-y-auto">
-                    <div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold text-white">Historial</h2><button id="clear-data" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg text-sm">Reiniciar Cuenta</button></div>
-                    <table class="w-full text-sm text-left text-gray-300"><thead class="text-xs text-gray-400 uppercase bg-gray-700 sticky top-0"><tr><th class="px-4 py-3">#</th><th class="px-4 py-3">Fecha</th><th class="px-4 py-3">Selecciones</th><th class="px-4 py-3 text-center">Cuota</th><th class="px-4 py-3 text-right">Apostado</th><th class="px-4 py-3 text-center">Resultado</th><th class="px-4 py-3 text-right">Beneficio</th><th class="px-4 py-3 text-right">Saldo Final</th></tr></thead><tbody id="history-body"></tbody></table>
+                    <div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold text-white">Historial</h2></div>
+                    <table class="w-full text-sm text-left text-gray-300"><thead class="text-xs text-gray-400 uppercase bg-gray-700 sticky top-0"><tr><th class="px-4 py-3">#</th><th class="px-4 py-3">Fecha</th><th class="px-4 py-3">Selecciones</th><th class="px-4 py-3 text-center">Cuota</th><th class="px-4 py-3 text-right">Apostado</th><th class="px-4 py-3 text-center">Resultado</th><th class="px-4 py-3 text-right">Beneficio</th><th class="px-4 py-3 text-right">Saldo Final</th><th class="px-4 py-3 text-center">Acciones</th></tr></thead><tbody id="history-body"></tbody></table>
                     <div id="no-bets-message" class="text-center py-16 text-gray-500"><p>Aún no has registrado ninguna apuesta.</p></div>
                 </div>
                 <div id="analisis-panel" class="tab-panel flex-grow p-6 overflow-y-auto hidden">
@@ -177,6 +181,7 @@
         let currentUser = null;
         let unsubscribeFromBets = null;
         let monthlyChartInstance = null;
+        let editingBetId = null;
 
         const dom = {
             authContainer: document.getElementById('auth-container'),
@@ -191,6 +196,8 @@
             setupForm: document.getElementById('setup-form'),
             mainApp: document.getElementById('main-app'),
             betForm: document.getElementById('bet-form'),
+            submitBetBtn: document.getElementById('submit-bet-btn'),
+            cancelEditBtn: document.getElementById('cancel-edit-btn'),
             historyBody: document.getElementById('history-body'),
             clearDataBtn: document.getElementById('clear-data'),
             currentBankrollEl: document.getElementById('current-bankroll'),
@@ -327,15 +334,30 @@
             await updateDoc(betDocRef, updatedData);
         }
 
+        async function deleteBet(betId) {
+            if (!currentUser) return;
+            if (confirm("¿Estás seguro de que quieres eliminar esta apuesta?")) {
+                const betDocRef = doc(db, `/artifacts/${appId}/users/${currentUser.uid}/bets/${betId}`);
+                await deleteDoc(betDocRef);
+            }
+        }
+
         async function resetAccount() {
             if (!currentUser) return;
              if (confirm("¿Seguro que quieres borrar TODAS tus apuestas y reiniciar tu objetivo? Esta acción no se puede deshacer.")) {
-                state.bets.forEach(bet => {
+                // Borrar todas las apuestas de forma segura
+                const deletePromises = state.bets.map(bet => {
                      const betDocRef = doc(db, `/artifacts/${appId}/users/${currentUser.uid}/bets/${bet.id}`);
-                     deleteDoc(betDocRef);
+                     return deleteDoc(betDocRef);
                 });
+                await Promise.all(deletePromises);
+
+                // Borrar el documento de configuración del usuario
                 const userDocRef = doc(db, `/artifacts/${appId}/users/${currentUser.uid}`);
                 await deleteDoc(userDocRef);
+
+                // Forzar la recarga de datos del usuario para mostrar el modal de configuración
+                await loadUserData();
              }
         }
         dom.clearDataBtn.addEventListener('click', resetAccount);
@@ -440,7 +462,7 @@
                         profitDisplay = `<span class="font-semibold ${profitClass}">${profit >= 0 && bet.result !== 'pending' ? '+' : ''}${formatCurrency(bet.result === 'pending' ? 0 : profit)}</span>`;
                     }
 
-                    row.innerHTML = `<td class="px-4 py-3 font-medium text-gray-400">${totalBets - index}</td><td class="px-4 py-3 font-semibold text-white">${bet.date ? new Date(bet.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''}</td><td class="px-4 py-3 text-white text-xs space-y-1">${selectionsHtml}</td><td class="px-4 py-3 text-center font-bold text-indigo-300">${bet.totalOdds.toFixed(3)}</td><td class="px-4 py-3 text-right">${formatCurrency(bet.stake)}</td><td class="px-4 py-3 text-center">${resultDisplay}</td><td class="px-4 py-3 text-right">${profitDisplay}</td><td class="px-4 py-3 text-right font-bold text-white">${formatCurrency(bet.finalBankroll)}</td>`;
+                    row.innerHTML = `<td class="px-4 py-3 font-medium text-gray-400">${totalBets - index}</td><td class="px-4 py-3 font-semibold text-white">${bet.date ? new Date(bet.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''}</td><td class="px-4 py-3 text-white text-xs space-y-1">${selectionsHtml}</td><td class="px-4 py-3 text-center font-bold text-indigo-300">${bet.totalOdds.toFixed(3)}</td><td class="px-4 py-3 text-right">${formatCurrency(bet.stake)}</td><td class="px-4 py-3 text-center">${resultDisplay}</td><td class="px-4 py-3 text-right">${profitDisplay}</td><td class="px-4 py-3 text-right font-bold text-white">${formatCurrency(bet.finalBankroll)}</td><td class="px-4 py-3 text-center"><div class="flex justify-center items-center gap-2"><button class="edit-bet-btn p-1 rounded-md hover:bg-gray-700" data-bet-id="${bet.id}" title="Editar Apuesta"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button><button class="delete-bet-btn p-1 rounded-md hover:bg-gray-700" data-bet-id="${bet.id}" title="Eliminar Apuesta"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-400 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button></div></td>`;
                     dom.historyBody.appendChild(row);
             });
         }
@@ -481,20 +503,34 @@
                 totalOdds: parseFloat(dom.totalOddsEl.value), 
                 stake,
                 result: document.getElementById('result').value, 
-                profit: 0, 
+                profit: 0,
+                probability: parseFloat(dom.probabilityInput.value) || 55,
             };
             
-            await addBet(newBet);
+            if (editingBetId) {
+                await updateBet(editingBetId, newBet);
+            } else {
+                await addBet(newBet);
+            }
             
-            dom.betForm.reset();
-            dom.probabilityInput.value = '55';
-            dom.selectionsContainer.innerHTML = '<label class="block text-sm font-medium text-gray-300">Selecciones</label>';
-            addSelectionHTML();
-            calculateTotalOdds();
-            dom.betDateInput.valueAsDate = new Date();
+            cancelEdit();
         };
 
         dom.betForm.addEventListener('submit', handleFormSubmit);
+
+        dom.historyBody.addEventListener('click', e => {
+            const editBtn = e.target.closest('.edit-bet-btn');
+            if (editBtn) {
+                const betId = editBtn.dataset.betId;
+                startEditBet(betId);
+            }
+
+            const deleteBtn = e.target.closest('.delete-bet-btn');
+            if (deleteBtn) {
+                const betId = deleteBtn.dataset.betId;
+                deleteBet(betId);
+            }
+        });
 
         dom.historyBody.addEventListener('change', (e) => {
             const betId = e.target.dataset.betId;
@@ -532,7 +568,7 @@
             }
         });
         
-        const addSelectionHTML = () => {
+        const addSelectionHTML = (selectionData = null) => {
              const selectionCount = dom.selectionsContainer.querySelectorAll('.selection-row').length;
              const newSelection = document.createElement('div');
              newSelection.className = 'selection-row space-y-2';
@@ -546,6 +582,14 @@
                      <input type="text" placeholder="Deporte" class="selection-sport bg-gray-900 border-gray-600 rounded-md text-white text-xs p-2" required>
                      <input type="text" placeholder="Competición" class="selection-competition bg-gray-900 border-gray-600 rounded-md text-white text-xs p-2" required>
                  </div>`;
+            
+             if (selectionData) {
+                newSelection.querySelector('.selection-desc').value = selectionData.description;
+                newSelection.querySelector('.selection-odds').value = selectionData.odds;
+                newSelection.querySelector('.selection-sport').value = selectionData.sport;
+                newSelection.querySelector('.selection-competition').value = selectionData.competition;
+             }
+
              dom.selectionsContainer.appendChild(newSelection);
              newSelection.querySelector('.selection-odds').addEventListener('input', calculateTotalOdds);
              newSelection.querySelector('.remove-selection-btn').addEventListener('click', () => {
@@ -579,9 +623,48 @@
              const suggestedStake = availableBankroll * kellyFraction;
              dom.kellySuggestionEl.textContent = `${formatCurrency(suggestedStake)} (${(kellyFraction * 100).toFixed(2)}%)`;
          };
+
+         function startEditBet(betId) {
+            const bet = state.bets.find(b => b.id === betId);
+            if (!bet) return;
+
+            editingBetId = betId;
+
+            dom.betDateInput.value = bet.date;
+            document.getElementById('stake').value = bet.stake;
+            document.getElementById('result').value = bet.result;
+            dom.probabilityInput.value = bet.probability || 55;
+
+            dom.selectionsContainer.innerHTML = '<label class="block text-sm font-medium text-gray-300">Selecciones</label>';
+            bet.selections.forEach(sel => addSelectionHTML(sel));
+            calculateTotalOdds();
+
+            dom.submitBetBtn.textContent = 'Guardar Cambios';
+            dom.submitBetBtn.classList.replace('bg-indigo-600', 'bg-green-600');
+            dom.submitBetBtn.classList.replace('hover:bg-indigo-700', 'hover:bg-green-700');
+            dom.cancelEditBtn.classList.remove('hidden');
+            dom.betForm.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function cancelEdit() {
+            editingBetId = null;
+            dom.betForm.reset();
+            dom.probabilityInput.value = '55';
+            dom.selectionsContainer.innerHTML = '<label class="block text-sm font-medium text-gray-300">Selecciones</label>';
+            addSelectionHTML();
+            calculateTotalOdds();
+            dom.betDateInput.valueAsDate = new Date();
+
+            dom.submitBetBtn.textContent = 'Añadir Registro';
+            dom.submitBetBtn.classList.replace('bg-green-600', 'bg-indigo-600');
+            dom.submitBetBtn.classList.replace('hover:bg-green-700', 'hover:bg-indigo-700');
+            dom.cancelEditBtn.classList.add('hidden');
+        }
+
          addSelectionHTML();
          dom.betDateInput.valueAsDate = new Date();
-         dom.addSelectionBtn.addEventListener('click', addSelectionHTML);
+         dom.addSelectionBtn.addEventListener('click', () => addSelectionHTML());
+         dom.cancelEditBtn.addEventListener('click', cancelEdit);
          dom.probabilityInput.addEventListener('input', calculateKelly);
          dom.totalOddsEl.addEventListener('input', calculateKelly);
          dom.tabHistorial.addEventListener('click', () => { dom.tabHistorial.classList.add('active'); dom.tabAnalisis.classList.remove('active'); dom.historialPanel.classList.remove('hidden'); dom.analisisPanel.classList.add('hidden'); });
@@ -593,4 +676,11 @@
     </script>
 </body>
 </html>
+
+
+
+
+
+
+
 
